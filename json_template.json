@@ -1,0 +1,83 @@
+{
+  "query": {
+    "script_score": {
+      "query": {
+        "function_score": {
+          "query": {
+            "bool": {
+              "should": [
+                {
+                  "multi_match": {
+                    "query": "$text",
+                    "fields": [
+                      "all_name",
+                      "aname.ngram",
+                      "fname.ngram",
+                      "cname.ngram"
+                    ],
+                    "fuzziness": "AUTO"
+                  }
+                },
+                {
+                  "multi_match": {
+                    "query": "$jamotext",
+                    "fields": ["all_name_jamo"],
+                    "fuzziness": "AUTO"
+                  }
+                }
+              ]
+            }
+          },
+          "functions": [
+            {
+              "gauss": {
+                "location": {
+                  "origin": "37.501,127.039",
+                  "scale": "100km",
+                  "offset": "0km",
+                  "decay": 0.5
+                }
+              },
+              "weight": 2
+            }
+          ],
+          "score_mode": "sum",
+          "boost_mode": "sum"
+        }
+      },
+      "script": {
+        "source": "long baseScore = (doc['weight'].value == 0L) ? 100L : doc['weight'].value; return _score + (baseScore / 100);"
+      }
+    }
+  },
+  "script_fields": {
+    "combined_name": {
+      "script": {
+        "lang": "painless",
+        "source": "String fname = params._source.fname != null ? params._source.fname : ''; String aname = params._source.aname != null ? params._source.aname : ''; String cname = params._source.cname != null ? params._source.cname : ''; String a1 = params._source.a1 != null ? params._source.a1 : ''; String a2 = params._source.a2 != null ? params._source.a2 : ''; String a3 = params._source.a3 != null ? params._source.a3 : ''; String a4 = params._source.a4 != null ? params._source.a4 : ''; return (fname + ', ' + aname + ', ' + cname + '    || ' + a1 + ' ' + a2 + ' ' + a3 + ' ' + a4).trim();"
+      }
+    },
+    "distance_km": {
+      "script": {
+        "lang": "painless",
+        "source": "return Math.round(doc['location'].arcDistance(params.lat, params.lon) / 1000 * 10.0)/10.0;",
+        "params": {
+          "lat": 37.501,
+          "lon": 127.039
+        }
+      }
+    },
+    "distance_score": {
+      "script": {
+        "lang": "painless",
+        "source": "double distance = doc['location'].arcDistance(params.lat, params.lon); return Math.pow(params.decay, distance / params.scale);",
+        "params": {
+          "lat": 37.501,
+          "lon": 127.039,
+          "scale": 100000,
+          "decay": 0.5
+        }
+      }
+    }
+  }
+}

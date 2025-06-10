@@ -252,7 +252,7 @@ class LambdaImageAnalyzer:
             )
             
             # 응답에서 텍스트 추출
-            analysis = response.choices[0].message.content  
+            analysis = response.choices[0].message.content
             
             result = {
                 "analysis": analysis,

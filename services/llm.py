@@ -302,7 +302,7 @@ async def generate_rag_response(request_id, query, docs, llm_name, user_id=None)
         }
 
 async def analyze_image_url_with_model(request_id, image_url, img_base64, description, model_type):
-    """URL을 통해 특정 모델을 사용하여 이미지를 분석합니다."""  
+    """URL을 통해 특정 모델을 사용하여 이미지를 분석합니다."""
     
     logger.info(f"[{request_id}] {model_type} 모델로 URL 이미지 분석 시작: {image_url}")
     
