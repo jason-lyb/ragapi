@@ -1,0 +1,5 @@
+﻿__pycache__/
+node_modules/
+logs/
+venv/
+config.py
