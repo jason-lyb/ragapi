@@ -35,7 +35,7 @@ async def analyze_image_url(
     
     - url: 분석할 이미지의 URL
     - description: 이미지에 대한 추가 설명 (텍스트를 추출하고 일자와 주소를 추출해줘)
-    - llm_type: 사용할 LLM 유형 ("chatgpt", "gemini", "llama",  "all(비교)")
+    - llm_type: 사용할 LLM 유형 ("chatgpt", "gemini", "llama", "naver",  "all(비교)")
     """
     
     request_id = f"req_{int(time.time() * 1000)}"
@@ -106,10 +106,11 @@ async def analyze_image_url(
             openai_task = safe_analyze_with_model(request_id, url, img_base64, description, "chatgpt")
             gemini_task = safe_analyze_with_model(request_id, url, img_base64, description, "gemini")
             llama_task = safe_analyze_with_model(request_id, url, img_base64, description, "llama")
+            naver_task = safe_analyze_with_model(request_id, url, img_base64, description, "naver")
             
             # 모든 작업을 동시에 실행하고 결과를 기다림
-            openai_result, gemini_result, llama_result = await asyncio.gather(
-                openai_task, gemini_task, llama_task, return_exceptions=True
+            openai_result, gemini_result, llama_result, naver_result = await asyncio.gather(
+                openai_task, gemini_task, llama_task, naver_task, return_exceptions=True
             )
             
             # 결과 처리 및 조합 - 동일한 JSON 구조 유지
@@ -129,6 +130,11 @@ async def analyze_image_url(
                     "analysis": "",
                     "model": LAMBDA_IMG_MODEL
                 },
+                "naver": {
+                    "status": "success",
+                    "analysis": "",
+                    "model": "HCX-005"
+                },                
                 "summary": {
                     "total_models": 3,
                     "successful_models": 0,
@@ -186,6 +192,20 @@ async def analyze_image_url(
                 combined_result["llama"]["analysis"] = f"오류 발생: {str(llama_result)}"
                 combined_result["summary"]["failed_models"] += 1
             
+            # Naver 결과 처리
+            if isinstance(naver_result, dict):
+                if naver_result.get("success"):
+                    combined_result["naver"]["analysis"] = naver_result["data"]["analysis"]
+                    combined_result["summary"]["successful_models"] += 1
+                else:
+                    combined_result["naver"]["status"] = "failed"
+                    combined_result["naver"]["analysis"] = f"오류 발생: {naver_result.get('error', 'Unknown error')}"
+                    combined_result["summary"]["failed_models"] += 1
+            else:
+                combined_result["naver"]["status"] = "failed"
+                combined_result["naver"]["analysis"] = f"오류 발생: {str(naver_result)}"
+                combined_result["summary"]["failed_models"] += 1            
+
             # 성공률 계산
             combined_result["summary"]["success_rate"] = round(
                 (combined_result["summary"]["successful_models"] / combined_result["summary"]["total_models"]) * 100, 2
