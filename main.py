@@ -92,4 +92,7 @@ if __name__ == "__main__":
     config.worker_class = "uvloop"
     
     logger.info("Hypercorn 서버 시작 중...")
-    asyncio.run(hypercorn.asyncio.serve(app, config))
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(hypercorn.asyncio.serve(app, config))
+    loop.run_forever()    
+    # asyncio.run(hypercorn.asyncio.serve(app, config))
